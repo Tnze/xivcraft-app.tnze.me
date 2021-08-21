@@ -15,5 +15,10 @@
     "postinstall": "yarn electron-rebuild && yarn link-modules"
   },
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {
+    "xiv-solver": "file:/Users/Tnze/WebstormProjects/xiv-solver"
+  },
+  "devDependencies": {
+    "cargo-cp-artifact": "^0.1.4"
+  }
 }

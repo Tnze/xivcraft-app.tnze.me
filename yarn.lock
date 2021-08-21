@@ -3055,6 +3055,11 @@ capture-exit@^2.0.0:
   dependencies:
     rsvp "^4.8.4"
 
+cargo-cp-artifact@^0.1.4:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/cargo-cp-artifact/-/cargo-cp-artifact-0.1.4.tgz#1551500e6b1422e27c4da6de38deaac0a55466f9"
+  integrity sha512-34yUas8aUENHGdk6JhLkV4ol0GLtP78YgqpsRDmmnpADy9JoTg/DgKM3CRHAeozTRNhKoPaRFhV+BxoqkmoKUA==
+
 caseless@~0.12.0:
   version "0.12.0"
   resolved "https://registry.yarnpkg.com/caseless/-/caseless-0.12.0.tgz#1b681c21ff84033c826543090689420d187151dc"
@@ -7946,6 +7951,13 @@ node-int64@^0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
+
+node-loader@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/node-loader/-/node-loader-2.0.0.tgz#9109a6d828703fd3e0aa03c1baec12a798071562"
+  integrity sha512-I5VN34NO4/5UYJaUBtkrODPWxbobrE4hgDqPrjB25yPkonFhCmZ146vTH+Zg417E9Iwoh1l/MbRs1apc5J295Q==
+  dependencies:
+    loader-utils "^2.0.0"
 
 node-modules-regexp@^1.0.0:
   version "1.0.0"
