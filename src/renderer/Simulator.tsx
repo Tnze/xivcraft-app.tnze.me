@@ -9,7 +9,7 @@ import {
 import { DualAxes } from '@ant-design/charts';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import { Status } from 'xiv-solver';
+import { Status, CraftAI } from 'xiv-solver';
 import { DualAxesOptions } from '@antv/g2plot/lib/plots/dual-axes/types';
 import SkillIcon from './SkillIcon';
 
@@ -121,20 +121,24 @@ export interface Recipe {
 interface ISimulatorProps {
   attributes: Attributes;
   recipe: Recipe;
-  setHelperLoading: (persent: number) => void;
+  setHelperLoading: (stage: string, percent: number) => void;
 }
 
-export default function Simulator({ attributes, recipe }: ISimulatorProps) {
+export default function Simulator({
+  attributes,
+  recipe,
+  setHelperLoading,
+}: ISimulatorProps) {
   const [userSkills, setUserSkills] = React.useState<string[]>([]);
-  const [autoSkills] = React.useState<string[]>([]);
+  const [autoSkills, setAutoSkills] = React.useState<string[]>([]);
   const [simulateResult, setSimulateResult] = React.useState<any[]>([[], []]);
   const [du, setDu] = React.useState(recipe.durability);
   const [cp, setCp] = React.useState(attributes.craftPoint);
   const [pg, setPg] = React.useState(0);
   const [qu, setQu] = React.useState(0);
-
-  const simulate = (skills: string[]) => {
-    const s = new Status(
+  const [solver, setSolver] = React.useState<any | null>(null);
+  const newStatus = () =>
+    new Status(
       attributes.level,
       attributes.craftsmanship,
       attributes.control,
@@ -146,11 +150,28 @@ export default function Simulator({ attributes, recipe }: ISimulatorProps) {
       recipe.quality,
       recipe.durability
     );
+  React.useEffect(() => {
+    const s = newStatus();
+    const ai = new CraftAI(s);
+    ai.allocate()
+      .then(() => {
+        ai.search(s, (stage: string, percent: number) => {
+          setHelperLoading(stage, percent);
+          if (stage === 'touch' && percent === 1) setSolver(ai);
+        });
+        return null;
+      })
+      .catch(console.error);
+    return () => setSolver(null);
+  }, [attributes, recipe]);
+
+  const simulate = (skills: string[]) => {
+    const s = newStatus();
     const resources: { skill: string; value: number; key: string }[] = [];
     const incomes: { skill: string; value: number; key: string }[] = [];
     const errors = [];
 
-    skills.forEach((sk, i) => {
+    const check = (sk: string, i: number) => {
       const skillID = `[${Number(i) + 1}] ${skillsNameTranslate.get(sk)}`;
       try {
         s.castSkill(skills[i]);
@@ -178,21 +199,25 @@ export default function Simulator({ attributes, recipe }: ISimulatorProps) {
       } catch (e) {
         errors.push({ skill: skillID, err: e });
       }
-    });
+    };
+    skills.forEach(check);
+
     const status = s.readProperties();
     setSimulateResult([resources, incomes]);
     setDu(status.durability);
     setCp(status.craft_points);
     setPg(status.progress);
     setQu(status.quality);
+    return s;
   };
 
   const onItemsChange = (skills: string[]) => {
-    simulate(skills);
-    // this.state.worker.postMessage({
-    //     action: 'resolve',
-    //     pre: skills,
-    // })
+    const s = simulate(skills);
+    if (solver !== null) {
+      const solveResult = solver.resolve(s);
+      setAutoSkills(solveResult);
+      simulate(skills.concat(solveResult));
+    }
   };
 
   const grid = 8;
@@ -258,8 +283,8 @@ export default function Simulator({ attributes, recipe }: ISimulatorProps) {
   const onDelete = (i: number) => {
     const newItems = Array.from(userSkills);
     newItems.splice(i, 1);
-    setUserSkills(newItems);
     onItemsChange(newItems);
+    setUserSkills(newItems);
   };
   const onDragEnd = (result: DropResult) => {
     // dropped outside the list
@@ -269,15 +294,15 @@ export default function Simulator({ attributes, recipe }: ISimulatorProps) {
       const [removed] = newUserSkills.splice(result.source.index, 1);
       newUserSkills.splice(result.destination.index, 0, removed);
 
-      setUserSkills(newUserSkills);
       onItemsChange(newUserSkills);
+      setUserSkills(newUserSkills);
     }
   };
   const appendSkill = (sk: string) => {
     const result = Array.from(userSkills);
     result.push(sk);
-    setUserSkills(result);
     onItemsChange(result);
+    setUserSkills(result);
   };
   return (
     <div>

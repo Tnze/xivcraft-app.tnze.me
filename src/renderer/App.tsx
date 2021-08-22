@@ -37,7 +37,7 @@ const Hello = () => {
     <Simulator
       attributes={attributes}
       recipe={recipe}
-      setHelperLoading={setHelperLoading}
+      setHelperLoading={(_s, p) => setHelperLoading(p)}
     />
   );
 
