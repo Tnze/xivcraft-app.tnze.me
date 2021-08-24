@@ -57,7 +57,7 @@ export default function AttributeSelector({
   const onRecipeChange = (x: CascaderValueType) => {
     setRecipePath(x);
     if (x[0] !== 'custom') {
-      const r = Culinarian.find((e) => e.recipeId.toString() === x[1]);
+      const r = Culinarian.find((e) => e.recipeId === Number(x[1]));
       if (r !== undefined) {
         onChangeRecipe({
           recipeLevel: r.level,

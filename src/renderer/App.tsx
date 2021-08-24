@@ -43,6 +43,7 @@ const Hello = () => {
 
   return (
     <div className="App">
+      免费软件，NGA帖子：https://bbs.nga.cn/read.php?tid=28176186
       <Row gutter={[16, 16]}>
         <Col span={20} offset={2}>
           <Steps

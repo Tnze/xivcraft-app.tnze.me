@@ -12646,7 +12646,7 @@ xdg-basedir@^4.0.0:
   resolved "https://registry.yarnpkg.com/xdg-basedir/-/xdg-basedir-4.0.0.tgz#4bc8d9984403696225ef83a1573cbbcb4e79db13"
   integrity sha512-PSNhEJDejZYV7h50BohL09Er9VaIefr2LMAf3OEmpCkjOi34eYyQYAXUTjEQtZJTKcF0E2UKTh+osDLsgNim9Q==
 
-"xiv-solver@file:../xiv-solver":
+"xiv-solver@file:/Users/Tnze/WebstormProjects/xiv-solver":
   version "0.1.0"
 
 xml-name-validator@^3.0.0:

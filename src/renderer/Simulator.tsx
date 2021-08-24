@@ -150,20 +150,6 @@ export default function Simulator({
       recipe.quality,
       recipe.durability
     );
-  React.useEffect(() => {
-    const s = newStatus();
-    const ai = new CraftAI(s);
-    ai.allocate()
-      .then(() => {
-        ai.search(s, (stage: string, percent: number) => {
-          setHelperLoading(stage, percent);
-          if (stage === 'touch' && percent === 1) setSolver(ai);
-        });
-        return null;
-      })
-      .catch(console.error);
-    return () => setSolver(null);
-  }, [attributes, recipe]);
 
   const simulate = (skills: string[]) => {
     const s = newStatus();
@@ -211,16 +197,37 @@ export default function Simulator({
     return s;
   };
 
-  const onItemsChange = (skills: string[]) => {
+  const onItemsChange = (skills: string[], useSolver: any | null = solver) => {
     const s = simulate(skills);
     if (solver !== null) {
-      const solveResult = solver.resolve(s);
-      setAutoSkills(solveResult);
-      simulate(skills.concat(solveResult));
+      try {
+        const solveResult = useSolver.resolve(s);
+        setAutoSkills(solveResult);
+        simulate(skills.concat(solveResult));
+      } catch (e) {
+        console.log(e);
+      }
     }
   };
 
-  const grid = 8;
+  React.useEffect(() => {
+    const s = newStatus();
+    const ai = new CraftAI(s);
+    ai.allocate()
+      .then(() => {
+        ai.search(s, (stage: string, percent: number) => {
+          setHelperLoading(stage, percent);
+          if (stage === 'touch' && percent === 1) {
+            onItemsChange(userSkills, ai);
+            setSolver(ai);
+          }
+        });
+        return null;
+      })
+      .catch(console.error);
+    return () => setSolver(null);
+  }, [attributes, recipe]);
+
   const config: DualAxesOptions = {
     data: simulateResult,
     xField: 'skill',
@@ -316,7 +323,7 @@ export default function Simulator({
                   style={{
                     background: 'transparent',
                     display: 'flex',
-                    padding: grid,
+                    padding: '8px',
                     overflow: 'auto',
                   }}
                   {...provided_drop.droppableProps}
@@ -362,7 +369,7 @@ export default function Simulator({
           </DragDropContext>
         </Col>
       </Row>
-      <Row style={{ padding: '8px' }} gutter={[16, 16]}>
+      <Row style={{ padding: '8px' }}>
         {autoSkills.map((item, i) => {
           const key = `[${i}] ${item}`;
           return (
