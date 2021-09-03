@@ -9,12 +9,12 @@ const { Step } = Steps;
 
 const Hello = () => {
   const [currentPage, setCurentPage] = React.useState(0);
-  const [helperLoading, setHelperLoading] = React.useState(0);
+  const [helperLoading, setHelperLoading] = React.useState({ s: 0, p: 0 });
   const [attributes, setAttributes] = React.useState({
     level: 80,
-    craftsmanship: 2830,
-    control: 2710,
-    craftPoint: 636,
+    craftsmanship: 2758,
+    control: 2909,
+    craftPoint: 641,
   });
   const [recipe, setRecipe] = React.useState({
     recipeLevel: 510,
@@ -30,6 +30,7 @@ const Hello = () => {
       onChangeAttributes={setAttributes}
       recipe={recipe}
       onChangeRecipe={setRecipe}
+      onNextPage={() => setCurentPage(1)}
     />
   );
 
@@ -37,19 +38,22 @@ const Hello = () => {
     <Simulator
       attributes={attributes}
       recipe={recipe}
-      setHelperLoading={(_s, p) => setHelperLoading(p)}
+      setHelperLoading={(s, p) =>
+        setHelperLoading({ s: s === 'touch' ? 2 : 1, p })
+      }
     />
   );
 
   return (
     <div className="App">
       免费软件，NGA帖子：https://bbs.nga.cn/read.php?tid=28176186
+      <br />
+      网页版：https://xivcraft.tnze.me/
       <Row gutter={[16, 16]}>
         <Col span={20} offset={2}>
           <Steps
             current={currentPage}
-            onChange={setCurentPage}
-            percent={currentPage === 1 ? helperLoading * 100 : undefined}
+            percent={currentPage === 1 ? helperLoading.p * 100 : undefined}
           >
             <Step
               title="选择属性及配方"
@@ -60,16 +64,18 @@ const Hello = () => {
               subTitle={
                 // eslint-disable-next-line no-nested-ternary
                 currentPage === 1
-                  ? helperLoading >= 1
-                    ? '自动补全正在工作'
-                    : `正在加载求解器: ${(helperLoading * 100).toFixed(1)}%`
+                  ? helperLoading.p >= 1
+                    ? '加载完成'
+                    : `${(helperLoading.p * 100).toFixed(1)}% (${
+                        helperLoading.s
+                      }/2)`
                   : undefined
               }
               description="通过点选及拖拽设计制作流程，并实时查看模拟结果"
             />
             <Step
               title="导出宏"
-              subTitle="⚠️正在施工"
+              subTitle="⚠️下次一定"
               description="将您的技能导出为游戏宏方便一键使用"
             />
           </Steps>

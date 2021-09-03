@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Progress } from 'antd';
+import { Row, Col, Progress, Tooltip } from 'antd';
 import {
   DragDropContext,
   Droppable,
@@ -86,18 +86,24 @@ const SkillsButtonList = ({ appendSkill }: ISkillsButtonListProps) => (
       const key = `[${i}] ${sk}`;
       return (
         <Col key={key} flex="48px">
-          <button
-            type="button"
-            onClick={() => appendSkill(sk)}
-            style={{
-              margin: 0,
-              padding: 0,
-              outline: 'none',
-              border: 'none',
-            }}
+          <Tooltip
+            title={skillsNameTranslate.get(sk)}
+            mouseEnterDelay={0.5}
+            mouseLeaveDelay={0}
           >
-            <SkillIcon skill={sk} />
-          </button>
+            <button
+              type="button"
+              onClick={() => appendSkill(sk)}
+              style={{
+                margin: 0,
+                padding: 0,
+                outline: 'none',
+                border: 'none',
+              }}
+            >
+              <SkillIcon skill={sk} />
+            </button>
+          </Tooltip>
         </Col>
       );
     })}
@@ -129,9 +135,14 @@ export default function Simulator({
   recipe,
   setHelperLoading,
 }: ISimulatorProps) {
+  const [needUpdate, setNeedUpdate] = React.useState<boolean>(false);
   const [userSkills, setUserSkills] = React.useState<string[]>([]);
   const [autoSkills, setAutoSkills] = React.useState<string[]>([]);
   const [simulateResult, setSimulateResult] = React.useState<any[]>([[], []]);
+  const [userDu, setUserDu] = React.useState(recipe.durability);
+  const [userCp, setUserCp] = React.useState(attributes.craftPoint);
+  const [userPg, setUserPg] = React.useState(0);
+  const [userQu, setUserQu] = React.useState(0);
   const [du, setDu] = React.useState(recipe.durability);
   const [cp, setCp] = React.useState(attributes.craftPoint);
   const [pg, setPg] = React.useState(0);
@@ -151,7 +162,7 @@ export default function Simulator({
       recipe.durability
     );
 
-  const simulate = (skills: string[]) => {
+  const simulate = (skills: string[], solveResult?: string[]) => {
     const s = newStatus();
     const resources: { skill: string; value: number; key: string }[] = [];
     const incomes: { skill: string; value: number; key: string }[] = [];
@@ -160,7 +171,7 @@ export default function Simulator({
     const check = (sk: string, i: number) => {
       const skillID = `[${Number(i) + 1}] ${skillsNameTranslate.get(sk)}`;
       try {
-        s.castSkill(skills[i]);
+        s.castSkill(sk);
         const status = s.readProperties();
         resources.push({
           skill: skillID,
@@ -188,27 +199,41 @@ export default function Simulator({
     };
     skills.forEach(check);
 
-    const status = s.readProperties();
-    setSimulateResult([resources, incomes]);
+    let status = s.readProperties();
+    setUserDu(status.durability);
+    setUserCp(status.craft_points);
+    setUserPg(status.progress);
+    setUserQu(status.quality);
+
+    if (solveResult) {
+      solveResult.forEach(check);
+      status = s.readProperties();
+    }
     setDu(status.durability);
     setCp(status.craft_points);
     setPg(status.progress);
     setQu(status.quality);
+
+    setSimulateResult([resources, incomes]);
     return s;
   };
 
-  const onItemsChange = (skills: string[], useSolver: any | null = solver) => {
+  const onItemsChange = (skills: string[]) => {
     const s = simulate(skills);
     if (solver !== null) {
       try {
-        const solveResult = useSolver.resolve(s);
+        const solveResult = solver.resolve(s);
         setAutoSkills(solveResult);
-        simulate(skills.concat(solveResult));
+        simulate(skills, solveResult);
       } catch (e) {
         console.log(e);
       }
     }
   };
+  if (needUpdate) {
+    onItemsChange(userSkills);
+    setNeedUpdate(false);
+  }
 
   React.useEffect(() => {
     const s = newStatus();
@@ -218,8 +243,8 @@ export default function Simulator({
         ai.search(s, (stage: string, percent: number) => {
           setHelperLoading(stage, percent);
           if (stage === 'touch' && percent === 1) {
-            onItemsChange(userSkills, ai);
             setSolver(ai);
+            setNeedUpdate(true);
           }
         });
         return null;
@@ -290,8 +315,8 @@ export default function Simulator({
   const onDelete = (i: number) => {
     const newItems = Array.from(userSkills);
     newItems.splice(i, 1);
-    onItemsChange(newItems);
     setUserSkills(newItems);
+    setNeedUpdate(true);
   };
   const onDragEnd = (result: DropResult) => {
     // dropped outside the list
@@ -301,15 +326,15 @@ export default function Simulator({
       const [removed] = newUserSkills.splice(result.source.index, 1);
       newUserSkills.splice(result.destination.index, 0, removed);
 
-      onItemsChange(newUserSkills);
       setUserSkills(newUserSkills);
+      setNeedUpdate(true);
     }
   };
   const appendSkill = (sk: string) => {
     const result = Array.from(userSkills);
     result.push(sk);
-    onItemsChange(result);
     setUserSkills(result);
+    setNeedUpdate(true);
   };
   return (
     <div>
@@ -383,43 +408,64 @@ export default function Simulator({
         <Col span={8}>
           <Row>
             <Col flex={1}>
-              <Progress
-                type="circle"
-                percent={(pg / recipe.progress) * 100}
-                format={(_percent) => pg.toString()}
-                width={80}
-              />
+              <Tooltip title={`${pg} / ${recipe.progress} 进展`}>
+                <Progress
+                  type="circle"
+                  percent={(pg / recipe.progress) * 100}
+                  strokeColor="#87d068"
+                  success={{
+                    percent: (userPg / recipe.progress) * 100,
+                    strokeColor: '#108ee9',
+                  }}
+                  format={(_percent) => pg.toString()}
+                  width={80}
+                />
+              </Tooltip>
             </Col>
             <Col flex={1}>
-              <Progress
-                type="circle"
-                percent={(qu / recipe.quality) * 100}
-                format={(_percent) => qu.toString()}
-                width={80}
-              />
+              <Tooltip title={`${qu} / ${recipe.quality} 品质`}>
+                <Progress
+                  type="circle"
+                  percent={(qu / recipe.quality) * 100}
+                  strokeColor="#87d068"
+                  success={{
+                    percent: (userQu / recipe.quality) * 100,
+                    strokeColor: '#108ee9',
+                  }}
+                  format={(_percent) => qu.toString()}
+                  width={80}
+                />
+              </Tooltip>
             </Col>
-          </Row>
-          <br />
-          <Row>
-            <Col flex={2}>
-              <Progress
-                percent={(du / recipe.durability) * 100}
-                steps={7}
-                format={(_percent) => `${du} Du`}
-              />
+            <Col flex={1}>
+              <Tooltip title={`${du} / ${recipe.durability} 耐久`}>
+                <Progress
+                  type="circle"
+                  percent={(1 - du / recipe.durability) * 100}
+                  strokeColor="#87d068"
+                  success={{
+                    percent: (1 - userDu / recipe.durability) * 100,
+                    strokeColor: '#108ee9',
+                  }}
+                  format={(_percent) => du.toString()}
+                  width={80}
+                />
+              </Tooltip>
             </Col>
-          </Row>
-          <br />
-          <Row>
-            <Col flex={22}>
-              <Progress
-                strokeColor={{
-                  '0%': '#108ee9',
-                  '100%': '#87d068',
-                }}
-                percent={(cp / attributes.craftPoint) * 100}
-                format={(_percent) => `${cp} CP`}
-              />
+            <Col flex={1}>
+              <Tooltip title={`${cp} / ${attributes.craftPoint} 制作力`}>
+                <Progress
+                  type="circle"
+                  percent={(1 - cp / attributes.craftPoint) * 100}
+                  strokeColor="#87d068"
+                  success={{
+                    percent: (1 - userCp / attributes.craftPoint) * 100,
+                    strokeColor: '#108ee9',
+                  }}
+                  format={(_percent) => cp.toString()}
+                  width={80}
+                />
+              </Tooltip>
             </Col>
           </Row>
           <SkillsButtonList appendSkill={appendSkill} />
