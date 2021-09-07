@@ -7,7 +7,7 @@ const requireContext = require.context(
   /^\.\/.*\.png$/
 );
 
-export default function SkillIcon({ skill }: { skill: string }) {
+export default function SkillIcon({ skill }: { skill: string | null }) {
   return (
     <div
       style={{
@@ -26,7 +26,7 @@ export default function SkillIcon({ skill }: { skill: string }) {
           position: 'absolute',
         }}
         src={skill ? requireContext(`./${skill}.png`).default : null}
-        alt={skill}
+        alt={skill !== null ? skill : undefined}
       />
       <div
         style={{

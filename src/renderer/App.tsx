@@ -73,11 +73,6 @@ const Hello = () => {
               }
               description="通过点选及拖拽设计制作流程，并实时查看模拟结果"
             />
-            <Step
-              title="导出宏"
-              subTitle="⚠️下次一定"
-              description="将您的技能导出为游戏宏方便一键使用"
-            />
           </Steps>
         </Col>
       </Row>

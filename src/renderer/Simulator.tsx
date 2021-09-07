@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Progress, Tooltip } from 'antd';
+import { Row, Col, Progress, Tooltip, Radio } from 'antd';
 import {
   DragDropContext,
   Droppable,
@@ -13,41 +13,12 @@ import { Status, CraftAI } from 'xiv-solver';
 import { DualAxesOptions } from '@antv/g2plot/lib/plots/dual-axes/types';
 import SkillIcon from './SkillIcon';
 
-const skillList = [
-  'muscle_memory',
-  'reflect',
-  'trained_eye',
-  'basic_synth',
-  'brand_of_the_elements',
-  'careful_synth',
-  'focused_synth',
-  'groundwork',
-  'intensive_synth',
-  'delicate_synth',
-  'basic_touch',
-  'standard_touch',
-  'byregot_s_blessing',
-  'precise_touch',
-  'prudent_touch',
-  'focused_touch',
-  'preparatory_touch',
-  'masters_mend',
-  'waste_not',
-  'waste_not_ii',
-  'manipulation',
-  'inner_quiet',
-  'veneration',
-  'innovation',
-  'great_strides',
-  'name_of_the_elements',
-  'observe',
-  'final_appraisal',
-];
-
 const skillsNameTranslate = new Map([
   ['basic_synth', '制作'],
   ['basic_touch', '加工'],
   ['masters_mend', '精修'],
+  ['hasty_touch', '仓促'],
+  ['rapid_synth', '高速制作'],
   ['inner_quiet', '内静'],
   ['observe', '观察'],
   ['tricks_of_the_trade', '秘诀'],
@@ -75,6 +46,7 @@ const skillsNameTranslate = new Map([
   ['intensive_synth', '集中制作'],
   ['trained_eye', '工匠的神速技巧'],
 ]);
+const skillList = [...skillsNameTranslate.keys()];
 
 interface ISkillsButtonListProps {
   appendSkill: (arg0: string) => void;
@@ -139,6 +111,8 @@ export default function Simulator({
   const [userSkills, setUserSkills] = React.useState<string[]>([]);
   const [autoSkills, setAutoSkills] = React.useState<string[]>([]);
   const [simulateResult, setSimulateResult] = React.useState<any[]>([[], []]);
+  const [suggestSkill, setSuggestSkill] = React.useState(null);
+  const [condition, setCondition] = React.useState('normal');
   const [userDu, setUserDu] = React.useState(recipe.durability);
   const [userCp, setUserCp] = React.useState(attributes.craftPoint);
   const [userPg, setUserPg] = React.useState(0);
@@ -224,6 +198,10 @@ export default function Simulator({
       try {
         const solveResult = solver.resolve(s);
         setAutoSkills(solveResult);
+        s.setCondition(condition);
+        const suggestResult = solver.suggest(s);
+        s.setCondition('normal');
+        setSuggestSkill(suggestResult);
         simulate(skills, solveResult);
       } catch (e) {
         console.log(e);
@@ -405,7 +383,7 @@ export default function Simulator({
         })}
       </Row>
       <Row gutter={[16, 16]}>
-        <Col span={8}>
+        <Col span={12}>
           <Row>
             <Col flex={1}>
               <Tooltip title={`${pg} / ${recipe.progress} 进展`}>
@@ -468,9 +446,22 @@ export default function Simulator({
               </Tooltip>
             </Col>
           </Row>
+          <Radio.Group
+            onChange={(e) => setCondition(e.target.value)}
+            value={condition}
+          >
+            <Radio value="normal">白</Radio>
+            <Radio value="good">红</Radio>
+            <Radio value="centered">黄</Radio>
+            <Radio value="sturdy">蓝</Radio>
+            <Radio value="pliant">绿</Radio>
+            <Radio value="malleable">深蓝</Radio>
+            <Radio value="primed">紫</Radio>
+          </Radio.Group>
+          <SkillIcon skill={suggestSkill} />
           <SkillsButtonList appendSkill={appendSkill} />
         </Col>
-        <Col span={16}>
+        <Col span={12}>
           <DualAxes {...config} />
         </Col>
       </Row>
