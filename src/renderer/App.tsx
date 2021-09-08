@@ -17,11 +17,11 @@ const Hello = () => {
     craftPoint: 641,
   });
   const [recipe, setRecipe] = React.useState({
-    recipeLevel: 510,
+    recipeLevel: 514,
     baseLevel: 80,
-    progress: 8591,
-    quality: 56662,
-    durability: 70,
+    progress: 12089,
+    quality: 75378,
+    durability: 55,
   });
 
   const attrSelector = (
@@ -57,7 +57,7 @@ const Hello = () => {
           >
             <Step
               title="选择属性及配方"
-              description="请输入您的装备属性，并选择需要制作的道具"
+              description="请输入您的装备属性，并选择配方"
             />
             <Step
               title="编排技能"
@@ -71,7 +71,7 @@ const Hello = () => {
                       }/2)`
                   : undefined
               }
-              description="通过点选及拖拽设计制作流程，并实时查看模拟结果"
+              description="通过点选当前状态，查看求解器的实时建议"
             />
           </Steps>
         </Col>

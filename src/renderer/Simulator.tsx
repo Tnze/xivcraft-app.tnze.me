@@ -35,6 +35,7 @@ const skillsNameTranslate = new Map([
   ['precise_touch', '集中加工'],
   ['muscle_memory', '坚信'],
   ['careful_synth', '模范制作'],
+  ['patient_touch', '专心加工'],
   ['manipulation', '掌握'],
   ['prudent_touch', '俭约加工'],
   ['focused_synth', '注视制作'],
@@ -49,10 +50,11 @@ const skillsNameTranslate = new Map([
 const skillList = [...skillsNameTranslate.keys()];
 
 interface ISkillsButtonListProps {
-  appendSkill: (arg0: string) => void;
+  cond: string;
+  appendSkill: (arg0: Skill) => void;
 }
 
-const SkillsButtonList = ({ appendSkill }: ISkillsButtonListProps) => (
+const SkillsButtonList = ({ cond, appendSkill }: ISkillsButtonListProps) => (
   <Row>
     {skillList.map((sk, i) => {
       const key = `[${i}] ${sk}`;
@@ -60,12 +62,12 @@ const SkillsButtonList = ({ appendSkill }: ISkillsButtonListProps) => (
         <Col key={key} flex="48px">
           <Tooltip
             title={skillsNameTranslate.get(sk)}
-            mouseEnterDelay={0.5}
+            mouseEnterDelay={0}
             mouseLeaveDelay={0}
           >
             <button
               type="button"
-              onClick={() => appendSkill(sk)}
+              onClick={() => appendSkill({ name: sk, cond, success: true })}
               style={{
                 margin: 0,
                 padding: 0,
@@ -73,7 +75,7 @@ const SkillsButtonList = ({ appendSkill }: ISkillsButtonListProps) => (
                 border: 'none',
               }}
             >
-              <SkillIcon skill={sk} />
+              <SkillIcon name={sk} cond={cond} />
             </button>
           </Tooltip>
         </Col>
@@ -102,16 +104,24 @@ interface ISimulatorProps {
   setHelperLoading: (stage: string, percent: number) => void;
 }
 
+interface Skill {
+  name: string;
+  cond: string;
+  success: boolean;
+}
+
 export default function Simulator({
   attributes,
   recipe,
   setHelperLoading,
 }: ISimulatorProps) {
   const [needUpdate, setNeedUpdate] = React.useState<boolean>(false);
-  const [userSkills, setUserSkills] = React.useState<string[]>([]);
-  const [autoSkills, setAutoSkills] = React.useState<string[]>([]);
-  const [simulateResult, setSimulateResult] = React.useState<any[]>([[], []]);
-  const [suggestSkill, setSuggestSkill] = React.useState(null);
+  const [userSkills, setUserSkills] = React.useState<Skill[]>([]);
+  const [autoSkills, setAutoSkills] = React.useState<Skill[]>([]);
+  const [simulateResult, setSimulateResult] = React.useState<
+    { skill: string; value: number; key: string }[][]
+  >([[], []]);
+  const [suggestSkill, setSuggestSkill] = React.useState<Skill[]>([]);
   const [condition, setCondition] = React.useState('normal');
   const [userDu, setUserDu] = React.useState(recipe.durability);
   const [userCp, setUserCp] = React.useState(attributes.craftPoint);
@@ -136,16 +146,19 @@ export default function Simulator({
       recipe.durability
     );
 
-  const simulate = (skills: string[], solveResult?: string[]) => {
+  const simulate = (skills: Skill[]) => {
     const s = newStatus();
     const resources: { skill: string; value: number; key: string }[] = [];
     const incomes: { skill: string; value: number; key: string }[] = [];
-    const errors = [];
+    const errors: { skill: string; err: any }[] = [];
 
-    const check = (sk: string, i: number) => {
-      const skillID = `[${Number(i) + 1}] ${skillsNameTranslate.get(sk)}`;
+    let i = 0;
+    const check = (sk: Skill) => {
+      const skillID = `[${Number(i) + 1}] ${skillsNameTranslate.get(sk.name)}`;
+      i += 1;
       try {
-        s.castSkill(sk);
+        s.setCondition(sk.cond);
+        s.castSkill(sk.name, sk.success);
         const status = s.readProperties();
         resources.push({
           skill: skillID,
@@ -168,7 +181,7 @@ export default function Simulator({
           key: 'quality',
         });
       } catch (e) {
-        errors.push({ skill: skillID, err: e });
+        errors.push({ skill: skillID, err: e.message });
       }
     };
     skills.forEach(check);
@@ -179,9 +192,35 @@ export default function Simulator({
     setUserPg(status.progress);
     setUserQu(status.quality);
 
-    if (solveResult) {
-      solveResult.forEach(check);
-      status = s.readProperties();
+    if (solver !== null) {
+      try {
+        s.setCondition(condition);
+        const suggestResult: string[] = solver.suggest(s);
+        setSuggestSkill(
+          suggestResult.map((sk, index) => {
+            return {
+              name: sk,
+              cond: index > 0 ? 'normal' : condition,
+              success: true,
+            };
+          })
+        );
+
+        s.setCondition('normal');
+        const solveResult = solver.resolve(s).map((name: string) => {
+          return {
+            name,
+            cond: 'normal',
+            success: true,
+          };
+        });
+        setAutoSkills(solveResult);
+
+        solveResult.forEach(check);
+        status = s.readProperties();
+      } catch (e) {
+        console.log(e);
+      }
     }
     setDu(status.durability);
     setCp(status.craft_points);
@@ -189,27 +228,12 @@ export default function Simulator({
     setQu(status.quality);
 
     setSimulateResult([resources, incomes]);
+    if (errors.length > 0) console.error(errors);
     return s;
   };
 
-  const onItemsChange = (skills: string[]) => {
-    const s = simulate(skills);
-    if (solver !== null) {
-      try {
-        const solveResult = solver.resolve(s);
-        setAutoSkills(solveResult);
-        s.setCondition(condition);
-        const suggestResult = solver.suggest(s);
-        s.setCondition('normal');
-        setSuggestSkill(suggestResult);
-        simulate(skills, solveResult);
-      } catch (e) {
-        console.log(e);
-      }
-    }
-  };
   if (needUpdate) {
-    onItemsChange(userSkills);
+    simulate(userSkills);
     setNeedUpdate(false);
   }
 
@@ -308,7 +332,7 @@ export default function Simulator({
       setNeedUpdate(true);
     }
   };
-  const appendSkill = (sk: string) => {
+  const appendSkill = (sk: Skill) => {
     const result = Array.from(userSkills);
     result.push(sk);
     setUserSkills(result);
@@ -359,7 +383,7 @@ export default function Simulator({
                               e.preventDefault();
                             }}
                           >
-                            <SkillIcon skill={item} />
+                            <SkillIcon {...item} />
                           </div>
                         )}
                       </Draggable>
@@ -377,7 +401,7 @@ export default function Simulator({
           const key = `[${i}] ${item}`;
           return (
             <Col style={{ padding: 0 }} key={key} flex="48px">
-              <SkillIcon skill={item} />
+              <SkillIcon {...item} />
             </Col>
           );
         })}
@@ -447,7 +471,10 @@ export default function Simulator({
             </Col>
           </Row>
           <Radio.Group
-            onChange={(e) => setCondition(e.target.value)}
+            onChange={(e) => {
+              setCondition(e.target.value);
+              setNeedUpdate(true);
+            }}
             value={condition}
           >
             <Radio value="normal">白</Radio>
@@ -458,8 +485,34 @@ export default function Simulator({
             <Radio value="malleable">深蓝</Radio>
             <Radio value="primed">紫</Radio>
           </Radio.Group>
-          <SkillIcon skill={suggestSkill} />
-          <SkillsButtonList appendSkill={appendSkill} />
+          <Row>
+            {suggestSkill.map((item, i) => {
+              const key = `[${i}] ${item}`;
+              return (
+                <Col key={key} flex="48px">
+                  <Tooltip
+                    title={skillsNameTranslate.get(item.name)}
+                    mouseEnterDelay={0}
+                    mouseLeaveDelay={0}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => appendSkill(item)}
+                      style={{
+                        margin: 0,
+                        padding: 0,
+                        outline: 'none',
+                        border: 'none',
+                      }}
+                    >
+                      <SkillIcon {...item} />
+                    </button>
+                  </Tooltip>
+                </Col>
+              );
+            })}
+          </Row>
+          <SkillsButtonList appendSkill={appendSkill} cond={condition} />
         </Col>
         <Col span={12}>
           <DualAxes {...config} />

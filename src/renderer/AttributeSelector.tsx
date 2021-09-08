@@ -22,14 +22,16 @@ const data: CascaderOptionType[] = [
     label: '自定义',
   },
   {
-    value: 'culinarian',
-    label: '烹调师',
-    children: Culinarian.map((item) => {
-      return {
-        label: item.name.cn,
-        value: item.recipeId,
-      };
-    }),
+    label: '辉煌第一阶段',
+    value: 34610,
+  },
+  {
+    label: '辉煌第二阶段',
+    value: 34618,
+  },
+  {
+    label: '辉煌第三阶段',
+    value: 34626,
   },
 ];
 
@@ -54,12 +56,12 @@ export default function AttributeSelector({
   onNextPage,
 }: IAttributeProps) {
   const [recipePath, setRecipePath] = React.useState<CascaderValueType>([
-    'custom',
+    34610,
   ]);
   const onRecipeChange = (x: CascaderValueType) => {
     setRecipePath(x);
     if (x[0] !== 'custom') {
-      const r = Culinarian.find((e) => e.recipeId === Number(x[1]));
+      const r = Culinarian.find((e) => e.recipeId === Number(x[0]));
       if (r !== undefined) {
         onChangeRecipe({
           recipeLevel: r.level,
